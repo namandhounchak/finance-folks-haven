@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import {
@@ -9,40 +8,58 @@ import {
 } from "@/components/ui/card";
 import { getCategoryExpenses, defaultCategories } from "@/utils/mockFinanceData";
 import { useAuth } from "@/hooks/useAuth";
+import { convertCurrency, formatCurrency, getUserCurrency } from "@/utils/currencyUtils";
 
 export function ExpenseCategories() {
   const { user } = useAuth();
   const [chartData, setChartData] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("USD");
   
   useEffect(() => {
     if (user?.id) {
       const data = getCategoryExpenses(user.id);
       setChartData(data);
+      
+      // Get user currency preference
+      const userCurrency = getUserCurrency(user.id);
+      setCurrency(userCurrency);
+      
+      // Listen for currency changes
+      const handleStorageChange = () => {
+        const updatedCurrency = getUserCurrency(user.id);
+        setCurrency(updatedCurrency);
+      };
+      
+      window.addEventListener("storage", handleStorageChange);
+      
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
     }
   }, [user?.id]);
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      // Convert amount to user's preferred currency
+      const convertedValue = convertCurrency(payload[0].value, currency);
+      
       return (
         <div className="bg-white p-2 border rounded shadow-md text-sm">
           <p className="font-medium text-gray-900">{`${payload[0].name}`}</p>
-          <p className="text-gray-600">{`${formatCurrency(payload[0].value)}`}</p>
+          <p className="text-gray-600">{`${formatCurrency(convertedValue, currency)}`}</p>
         </div>
       );
     }
     return null;
   };
+
+  // Convert chart data values to user's preferred currency
+  const convertedChartData = chartData.map(item => ({
+    ...item,
+    displayValue: convertCurrency(item.value, currency),
+    // Keep original value for chart proportions
+  }));
 
   return (
     <Card className="animate-scale-in stagger-2">
@@ -54,7 +71,7 @@ export function ExpenseCategories() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={chartData}
+                data={convertedChartData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -64,7 +81,7 @@ export function ExpenseCategories() {
                 animationDuration={800}
                 animationBegin={200}
               >
-                {chartData.map((entry, index) => (
+                {convertedChartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Pie>
@@ -73,11 +90,13 @@ export function ExpenseCategories() {
           </ResponsiveContainer>
         </div>
         
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {chartData.slice(0, 4).map((category, i) => (
+        <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1">
+          {convertedChartData.slice(0, 4).map((category, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.fill }} />
-              <div className="text-sm text-gray-600 truncate">{category.name}</div>
+              <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: category.fill }} />
+              <div className="text-xs sm:text-sm text-gray-600 truncate">
+                {category.name} ({formatCurrency(category.displayValue, currency)})
+              </div>
             </div>
           ))}
         </div>

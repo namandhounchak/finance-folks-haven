@@ -24,6 +24,13 @@ export const getUserCurrency = (userId: string): string => {
   return savedCurrency || "USD"; // Default to USD if no preference is set
 };
 
+// Set currency preference for a user
+export const setUserCurrency = (userId: string, currency: string): void => {
+  localStorage.setItem(`financetracker_currency_${userId}`, currency);
+  // Dispatch storage event for components to detect the change
+  window.dispatchEvent(new Event('storage'));
+};
+
 // Convert amount from USD to the target currency
 export const convertCurrency = (amount: number, targetCurrency: string): number => {
   const rate = exchangeRates[targetCurrency] || 1;

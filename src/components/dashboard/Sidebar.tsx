@@ -77,7 +77,7 @@ export function Sidebar() {
         variant="ghost"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute top-4 left-4 z-50 md:hidden"
+        className="fixed top-4 left-4 z-50 md:hidden"
       >
         <Menu size={20} />
       </Button>
@@ -93,11 +93,11 @@ export function Sidebar() {
       {/* Sidebar */}
       <div 
         id="sidebar"
-        className={`fixed top-0 left-0 h-full bg-white border-r z-50 transition-all duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 h-full bg-white border-r z-50 transition-all duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } ${
           isOpen ? "w-64" : "w-0"
-        } md:relative md:translate-x-0 md:w-64 md:transition-width`}
+        } md:translate-x-0 md:w-full`}
       >
         <div className="h-full flex flex-col">
           {/* Close button (mobile only) */}
@@ -174,21 +174,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-
-      {/* Toggle Button (desktop only) */}
-      {!isMobile && (
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsOpen(!isOpen)}
-          className="hidden md:flex absolute -right-3 top-6 z-10 h-6 w-6 rounded-full border shadow-md"
-        >
-          <ChevronRight
-            size={12}
-            className={`transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
-          />
-        </Button>
-      )}
     </>
   );
 }

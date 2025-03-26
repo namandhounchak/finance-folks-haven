@@ -23,6 +23,7 @@ import {
   BadgeJapaneseYen, 
   IndianRupee 
 } from "lucide-react";
+import { getUserCurrency, setUserCurrency } from "@/utils/currencyUtils";
 
 // Define currency options
 const currencies = [
@@ -41,10 +42,8 @@ const Settings = () => {
   // Load saved currency preference from localStorage on component mount
   useEffect(() => {
     if (user?.id) {
-      const savedCurrency = localStorage.getItem(`financetracker_currency_${user.id}`);
-      if (savedCurrency) {
-        setSelectedCurrency(savedCurrency);
-      }
+      const savedCurrency = getUserCurrency(user.id);
+      setSelectedCurrency(savedCurrency);
     }
   }, [user?.id]);
 
@@ -53,8 +52,8 @@ const Settings = () => {
     setSelectedCurrency(value);
     
     if (user?.id) {
-      // Save to localStorage
-      localStorage.setItem(`financetracker_currency_${user.id}`, value);
+      // Save to localStorage and trigger update events
+      setUserCurrency(user.id, value);
       
       // Show success toast
       toast({
@@ -78,11 +77,14 @@ const Settings = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      {/* Sidebar - 25% width on large screens */}
+      <div className="w-full md:w-1/4">
+        <Sidebar />
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-8 md:ml-64">
+      {/* Main Content - 75% width on large screens */}
+      <div className="flex-1 p-4 md:p-8 w-full md:w-3/4">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
         
         <div className="grid gap-6">
