@@ -9,27 +9,35 @@ import {
 } from "@/components/ui/card";
 import { getFinancialData, categoryMap } from "@/utils/mockFinanceData";
 import { useAuth } from "@/hooks/useAuth";
+import { convertCurrency, formatCurrency, getUserCurrency } from "@/utils/currencyUtils";
 
 export function BudgetProgress() {
   const { user } = useAuth();
   const [budgets, setBudgets] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("USD");
   
   useEffect(() => {
     if (user?.id) {
       const data = getFinancialData(user.id);
       setBudgets(data.budgets);
+      
+      // Get user currency preference
+      const userCurrency = getUserCurrency(user.id);
+      setCurrency(userCurrency);
+      
+      // Listen for currency changes
+      const handleStorageChange = () => {
+        const updatedCurrency = getUserCurrency(user.id);
+        setCurrency(updatedCurrency);
+      };
+      
+      window.addEventListener("storage", handleStorageChange);
+      
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
     }
   }, [user?.id]);
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   return (
     <Card className="animate-scale-in stagger-3">
@@ -42,6 +50,11 @@ export function BudgetProgress() {
             const percentage = Math.min(100, Math.round((budget.spent / budget.amount) * 100));
             const remaining = budget.amount - budget.spent;
             
+            // Convert amounts to user's preferred currency
+            const convertedSpent = convertCurrency(budget.spent, currency);
+            const convertedAmount = convertCurrency(budget.amount, currency);
+            const convertedRemaining = convertCurrency(remaining, currency);
+            
             let statusColor = "bg-success-500";
             if (percentage > 75) statusColor = "bg-warning-500";
             if (percentage > 90) statusColor = "bg-destructive";
@@ -51,14 +64,14 @@ export function BudgetProgress() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="font-medium">{categoryMap[budget.category]}</div>
                   <div className="text-muted-foreground">
-                    {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
+                    {formatCurrency(convertedSpent, currency)} / {formatCurrency(convertedAmount, currency)}
                   </div>
                 </div>
                 <Progress value={percentage} className={statusColor} />
                 <div className="flex justify-between text-xs">
                   <div className="text-muted-foreground">{percentage}% used</div>
                   <div className="font-medium text-success-600">
-                    {formatCurrency(remaining)} remaining
+                    {formatCurrency(convertedRemaining, currency)} remaining
                   </div>
                 </div>
               </div>

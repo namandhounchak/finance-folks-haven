@@ -9,27 +9,35 @@ import {
 } from "@/components/ui/card";
 import { getFinancialData } from "@/utils/mockFinanceData";
 import { useAuth } from "@/hooks/useAuth";
+import { convertCurrency, formatCurrency, getUserCurrency } from "@/utils/currencyUtils";
 
 export function FinancialGoals() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("USD");
   
   useEffect(() => {
     if (user?.id) {
       const data = getFinancialData(user.id);
       setGoals(data.goals);
+      
+      // Get user currency preference
+      const userCurrency = getUserCurrency(user.id);
+      setCurrency(userCurrency);
+      
+      // Listen for currency changes
+      const handleStorageChange = () => {
+        const updatedCurrency = getUserCurrency(user.id);
+        setCurrency(updatedCurrency);
+      };
+      
+      window.addEventListener("storage", handleStorageChange);
+      
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
     }
   }, [user?.id]);
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   // Calculate days remaining until deadline
   const getDaysRemaining = (deadline: string) => {
@@ -52,13 +60,17 @@ export function FinancialGoals() {
             const daysRemaining = getDaysRemaining(goal.deadline);
             const isUrgent = daysRemaining < 30;
             
+            // Convert amounts to user's preferred currency
+            const convertedCurrentAmount = convertCurrency(goal.currentAmount, currency);
+            const convertedTargetAmount = convertCurrency(goal.targetAmount, currency);
+            
             return (
               <div key={goal.id} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-base font-medium">{goal.title}</div>
                     <div className="text-sm text-muted-foreground">
-                      {formatCurrency(goal.currentAmount)} of {formatCurrency(goal.targetAmount)}
+                      {formatCurrency(convertedCurrentAmount, currency)} of {formatCurrency(convertedTargetAmount, currency)}
                     </div>
                   </div>
                   <div className={`text-sm font-medium ${isUrgent ? "text-destructive" : "text-muted-foreground"}`}>

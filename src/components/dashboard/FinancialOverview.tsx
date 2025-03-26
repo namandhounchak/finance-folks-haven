@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import {
   Card,
@@ -9,11 +10,39 @@ import {
 } from "@/components/ui/card";
 import { getFinancialData } from "@/utils/mockFinanceData";
 import { useAuth } from "@/hooks/useAuth";
+import { convertCurrency, formatCurrency, getUserCurrency } from "@/utils/currencyUtils";
 
 export function FinancialOverview() {
   const { user } = useAuth();
-  const userId = user?.id || "";
-  const financialData = getFinancialData(userId);
+  const [financialData, setFinancialData] = useState<any>(null);
+  const [currency, setCurrency] = useState("USD");
+  
+  useEffect(() => {
+    if (user?.id) {
+      const data = getFinancialData(user.id);
+      setFinancialData(data);
+      
+      // Get user currency preference
+      const userCurrency = getUserCurrency(user.id);
+      setCurrency(userCurrency);
+      
+      // Listen for currency changes
+      const handleStorageChange = () => {
+        const updatedCurrency = getUserCurrency(user.id);
+        setCurrency(updatedCurrency);
+      };
+      
+      window.addEventListener("storage", handleStorageChange);
+      
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
+    }
+  }, [user?.id]);
+  
+  if (!financialData) {
+    return <div className="animate-pulse">Loading financial data...</div>;
+  }
 
   // Calculate percentage changes
   const getPercentageChange = (current: number, previous: number) => {
@@ -25,16 +54,6 @@ export function FinancialOverview() {
   const incomeChange = getPercentageChange(financialData.income, financialData.lastMonthIncome);
   const expensesChange = getPercentageChange(financialData.expenses, financialData.lastMonthExpenses);
   const savingsChange = getPercentageChange(financialData.savings, financialData.lastMonthSavings);
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   // Badge component for changes
   const ChangeBadge = ({ percentage }: { percentage: number }) => {
@@ -70,10 +89,16 @@ export function FinancialOverview() {
     );
   };
 
+  // Convert all amounts to the user's preferred currency
+  const convertedBalance = convertCurrency(financialData.balance, currency);
+  const convertedIncome = convertCurrency(financialData.income, currency);
+  const convertedExpenses = convertCurrency(financialData.expenses, currency);
+  const convertedSavings = convertCurrency(financialData.savings, currency);
+
   const items = [
     {
       title: "Balance",
-      amount: formatCurrency(financialData.balance),
+      amount: formatCurrency(convertedBalance, currency),
       change: balanceChange,
       description: "from last month",
       bgColor: "bg-gradient-to-r from-blue-500 to-blue-600",
@@ -81,7 +106,7 @@ export function FinancialOverview() {
     },
     {
       title: "Income",
-      amount: formatCurrency(financialData.income),
+      amount: formatCurrency(convertedIncome, currency),
       change: incomeChange,
       description: "from last month",
       bgColor: "bg-gradient-to-r from-green-500 to-green-600",
@@ -89,7 +114,7 @@ export function FinancialOverview() {
     },
     {
       title: "Expenses",
-      amount: formatCurrency(financialData.expenses),
+      amount: formatCurrency(convertedExpenses, currency),
       change: expensesChange,
       description: "from last month",
       bgColor: "bg-gradient-to-r from-rose-500 to-rose-600",
@@ -97,7 +122,7 @@ export function FinancialOverview() {
     },
     {
       title: "Savings",
-      amount: formatCurrency(financialData.savings),
+      amount: formatCurrency(convertedSavings, currency),
       change: savingsChange,
       description: "from last month",
       bgColor: "bg-gradient-to-r from-amber-500 to-amber-600",
