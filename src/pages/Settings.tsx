@@ -20,7 +20,7 @@ import {
   DollarSign, 
   Euro, 
   PoundSterling, 
-  Yen,
+  BadgeJapaneseYen, 
   IndianRupee 
 } from "lucide-react";
 
@@ -29,7 +29,7 @@ const currencies = [
   { value: "USD", label: "US Dollar ($)", symbol: "$", icon: DollarSign },
   { value: "EUR", label: "Euro (€)", symbol: "€", icon: Euro },
   { value: "GBP", label: "British Pound (£)", symbol: "£", icon: PoundSterling },
-  { value: "JPY", label: "Japanese Yen (¥)", symbol: "¥", icon: Yen },
+  { value: "JPY", label: "Japanese Yen (¥)", symbol: "¥", icon: BadgeJapaneseYen },
   { value: "INR", label: "Indian Rupee (₹)", symbol: "₹", icon: IndianRupee },
 ];
 
